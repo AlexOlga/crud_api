@@ -49,6 +49,7 @@ const server = htpp.createServer((req, res) => {
         );
       }
       break;
+
     default:
       if (url.startsWith("/api/users/")) {
         const id = url.split("/")[3];
@@ -105,9 +106,11 @@ function userOper(method, req, res, id) {
 
       break;
     case "DELETE":
-      user = null;
-      break;
-
+       const index = users.findIndex(user=> user.id===id) ;
+      if (index !== -1) {  users.splice(index, 1);}
+      res.writeHead(204, { "Content-Type": "application/json" });
+      return res.end(JSON.stringify({ message: "user deleted" }));
+    
     default:
       res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ message: "invalid operation" }));
