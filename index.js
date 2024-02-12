@@ -3,7 +3,7 @@ import { randomUUID } from "crypto";
 
 const PORT = process.env.PORT || 4000;
 const users = [
-  { id: randomUUID(), name: "James Bond", age: 40, hobbie: ["cars"] },
+  { id: randomUUID(), username: "James Bond", age: 40, hobbies: ["cars"] },
 ];
 
 const server = htpp.createServer((req, res) => {
@@ -30,26 +30,29 @@ const server = htpp.createServer((req, res) => {
           data += chunk;
         });
         req.on("end", () => {
-          const { name, age, hobbie } = JSON.parse(data);
-          if (!name || !age) {
+          let newData=JSON.parse(data)
+          if (!isValidData(newData)){
             res.writeHead(400, { "Content-Type": "application/json" });
-            res.end(
-              JSON.stringify({ message: "Name and email are required fields" })
-            );
+          return res.end(
+            JSON.stringify({
+              message: "Enter correct data: username — string,  age — number",
+            })
+          );
           } else {
-            const hobby = hobbie || [];
-            const newUser = { id: randomUUID(), name, hobby };
+            const newUser ={id: randomUUID(), username: newData.username, age: newData.age, hobbies: newData.hobbies }
             users.push(newUser);
             res.writeHead(201, { "Content-Type": "application/json" });
             return res.end(JSON.stringify(newUser));
           }
-        });
+         
+          }
+        );
       }
       break;
     default:
       if (url.startsWith("/api/users/")) {
-        const id = url.split("/")[3];       
-        userOper(method, req, res, id);        
+        const id = url.split("/")[3];
+        userOper(method, req, res, id);
       } else {
         res.writeHead(404, { "Content-Type": "application/json" });
         return res.end(JSON.stringify({ message: "Not Found" }));
@@ -62,31 +65,71 @@ server.listen(PORT, () => {
 });
 
 function userOper(method, req, res, id) {
+  const user = validUser(id);
+  // user not found
+  if (!user) {
+    res.writeHead(404, {
+      "Content-type": "application/json",
+    });
+    return res.end(JSON.stringify({ message: "User did not found" }));
+  }
+
   switch (method.toUpperCase().trim()) {
     case "GET":
-      const user = validUser(id);
-      if (user) {
-        res.writeHead(200, {
-          "Content-type": "application/json",
-        });
-        return res.end(JSON.stringify(user));
-      } else {
-        res.writeHead(404, {
-          "Content-type": "application/json",
-        });
-        return res.end(JSON.stringify({ message: "User did not found" }));
-      }
-      break;
+      res.writeHead(200, {
+        "Content-type": "application/json",
+      });
+      return res.end(JSON.stringify(user));
     case "PUT":
+      let data = "";
+      req.on("data", (chunk) => {
+        data += chunk;
+      });
+      req.on("end", () => {
+        const { username, age, hobbies } = JSON.parse(data);
+        if (isValidData(JSON.parse(data))) {
+          user.age = age;
+          user.username = username;
+          user.hobbies = hobbies;
+          res.writeHead(200, { "Content-Type": "application/json" });
+          return res.end(JSON.stringify(user));
+        } else {
+          res.writeHead(400, { "Content-Type": "application/json" });
+          return res.end(
+            JSON.stringify({
+              message: "Enter correct data: username — string,  age — number",
+            })
+          );
+        }
+      });
+
       break;
     case "DELETE":
+      user = null;
       break;
+
+    default:
       res.writeHead(500, { "Content-Type": "application/json" });
       return res.end(JSON.stringify({ message: "invalid operation" }));
-    default:
   }
 }
 
 function validUser(id) {
   return users.find((el) => el.id === id);
 }
+
+function isValidData(data) {
+  if (!data.username || typeof data.username !== "string") return false;
+  if (!data.age || typeof data.age !== "number") return false;
+  if (!data.hobbies) {
+    data.hobbies = [];
+  }
+  if (typeof data.hobbies !== "object") return false;
+  let flag = true;
+  data.hobbies.forEach((el) => {
+    if (typeof el !== "string") flag = false;
+  });
+  return flag;
+}
+
+
