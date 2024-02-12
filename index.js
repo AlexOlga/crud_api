@@ -30,23 +30,24 @@ const server = htpp.createServer((req, res) => {
           data += chunk;
         });
         req.on("end", () => {
-          let newData=JSON.parse(data)
-          if (!isValidData(newData)){
-            res.writeHead(400, { "Content-Type": "application/json" });
-          return res.end(
-            JSON.stringify({
-              message: "Enter correct data: username — string,  age — number",
-            })
-          );
-          } else {
-            const newUser ={id: randomUUID(), username: newData.username, age: newData.age, hobbies: newData.hobbies }
-            users.push(newUser);
+          
+          if (isValidData(JSON.parse(data))) {
+            const { username, age, hobbies } = JSON.parse(data);
+            const newUser={id:randomUUID(), username, age, hobbies}
+            users.push(newUser)
             res.writeHead(201, { "Content-Type": "application/json" });
-            return res.end(JSON.stringify(newUser));
+            return res.end(JSON.stringify({
+              message: "User create",
+            }));
+          } else {
+            res.writeHead(400, { "Content-Type": "application/json" });
+            return res.end(
+              JSON.stringify({
+                message: "Enter correct data: username — string,  age — number",
+              })
+            );
           }
-         
-          }
-        );
+        });
       }
       break;
 
@@ -86,9 +87,9 @@ function userOper(method, req, res, id) {
       req.on("data", (chunk) => {
         data += chunk;
       });
-      req.on("end", () => {
-        const { username, age, hobbies } = JSON.parse(data);
+      req.on("end", () => {        
         if (isValidData(JSON.parse(data))) {
+          const { username, age, hobbies } = JSON.parse(data);
           user.age = age;
           user.username = username;
           user.hobbies = hobbies;
